@@ -33,13 +33,11 @@ pnpm install
 pnpm dev
 ```
 
-O projeto também pode ser executado sem instalar o `pnpm` globalmente:
+O projeto também pode ser executado sem instalar o `pnpm` globalmente e sem `sudo`:
 
 ```bash
-corepack enable
-corepack prepare pnpm@11.25.0 --activate
-pnpm install
-pnpm dev
+npx pnpm@11.25.0 install
+npx pnpm@11.25.0 dev
 ```
 
 Crie um arquivo `.env.local` a partir de `.env.example` e substitua os contatos antes do go-live:
