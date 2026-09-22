@@ -14,7 +14,8 @@ O produto foi construído ao redor da jornada:
 - Home narrativa e rotas modulares para métodos, problemas, ativos e setores.
 - Formulário local que gera um briefing copiável sem transmitir dados.
 - Módulos de equipamentos, cases e certificações marcados como **Conteúdo a validar**.
-- Nenhum cliente, certificação, número, equipe, equipamento, localização ou resultado operacional foi inventado.
+- Cenários, equipamentos e métricas usados para demonstrar a interface aparecem como **exemplo ilustrativo** e nunca como prova operacional.
+- Nenhum cliente, certificação, equipe, localização ou resultado operacional foi apresentado como fato sem validação.
 
 ## Stack
 
@@ -22,7 +23,7 @@ O produto foi construído ao redor da jornada:
 - React 19.
 - CSS com tokens centralizados em `app/globals.css`.
 - Componentes acessíveis do catálogo instalado para Sheet, Accordion, Select, Input e Button.
-- Imagem hero em WebP otimizado.
+- Imagens industriais em WebP otimizado, com identificação visual de conteúdo ilustrativo.
 - Saída compatível com Cloudflare Workers/Sites.
 
 ## Rodar localmente
@@ -30,6 +31,19 @@ O produto foi construído ao redor da jornada:
 ```bash
 pnpm install
 pnpm dev
+```
+
+O projeto também pode ser executado sem instalar o `pnpm` globalmente e sem `sudo`:
+
+```bash
+npx pnpm@11.25.0 install
+npx pnpm@11.25.0 dev
+```
+
+Crie um arquivo `.env.local` a partir de `.env.example` e substitua os contatos antes do go-live:
+
+```bash
+cp .env.example .env.local
 ```
 
 Build de produção:
@@ -49,10 +63,13 @@ app/
   robots.ts              Robots
 components/
   vrjb-site.tsx          Experiência, componentes e formulário
+  vrjb/
+    technical-visuals.tsx HUD, monitoramento, métricas e portfólio
 lib/
   site-data.ts           Conteúdo estruturado e taxonomia
 public/assets/
   vrjb-pipeline-scan.webp
+  inspections/           Galeria industrial ilustrativa em WebP
 ```
 
 ## Rotas prioritárias
@@ -60,7 +77,7 @@ public/assets/
 - `/` — Home.
 - `/endr` — metodologia central.
 - `/solucoes`, `/end`, `/problemas`, `/ativos`, `/setores` — hubs.
-- `/end/ultrassom`, `/end/phased-array-paut`, `/end/tofd` — páginas de método.
+- `/end/[slug]` — 14 páginas de método/plataforma de aquisição, incluindo UT, PAUT, TOFD, ECT, AE, RT, IRIS, termografia, videoscopia e drones.
 - `/problemas/corrosao`, `/problemas/trincas`, `/problemas/soldas` — páginas de problema.
 - `/solicitar-diagnostico` — gerador de briefing.
 - `/cases`, `/equipamentos`, `/certificacoes`, `/qualidade` — evidência pendente.
@@ -77,6 +94,7 @@ public/assets/
 - `ACCESSIBILITY.md`
 - `PERFORMANCE.md`
 - `DEPLOY.md`
+- `IMPLEMENTATION_SUMMARY.md`
 
 ## Regra de verdade
 

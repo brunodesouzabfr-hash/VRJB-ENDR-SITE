@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import {
   ArrowDown,
@@ -10,8 +11,9 @@ import {
   Clipboard,
   FileText,
   Menu,
+  MessageCircle,
   MoveRight,
-  Radar,
+  Search,
   ScanLine,
   ShieldCheck,
   Upload,
@@ -45,14 +47,33 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  CommandDialog,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  BrandKitShowcase,
+  CasePortfolio,
+  IllustrativeGallery,
+  LiveMonitoringPanel,
+  PipelineVisual,
+  RadarHUD,
+  StatsBar,
+} from "@/components/vrjb/technical-visuals";
+import {
   assets,
   endrProcess,
+  faqs,
   footerLinks,
   methods,
   pathways,
   primaryNav,
   principleCards,
   problems,
+  routeContent,
   sectors,
   type CardItem,
   type RouteContent,
@@ -61,9 +82,8 @@ import {
 function BrandMark({ compact = false }: { compact?: boolean }) {
   return (
     <Link href="/" className="brand-mark" aria-label="VRJB END’R — início">
-      <span className="brand-symbol" aria-hidden="true">
-        V<span>R</span>JB
-      </span>
+      {/* Lockup funcional de protótipo — substituir por SVG oficial quando aprovado */}
+      <span className="brand-symbol" aria-hidden="true"><i />VRJB</span>
       {!compact && (
         <span className="brand-lockup">
           <strong>END’R</strong>
@@ -71,6 +91,63 @@ function BrandMark({ compact = false }: { compact?: boolean }) {
         </span>
       )}
     </Link>
+  );
+}
+
+const searchItems = [
+  ...methods.map((item) => ({ label: item.title, href: item.href, group: "Métodos", terms: `${item.eyebrow} ${item.description}` })),
+  ...problems.map((item) => ({ label: item.title, href: item.href, group: "Problemas", terms: item.description })),
+  ...assets.map((item) => ({ label: item.title, href: item.href, group: "Ativos", terms: item.description })),
+  ...sectors.map((item) => ({ label: item.title, href: item.href, group: "Setores", terms: item.description })),
+  ...Object.entries(routeContent).map(([slug, item]) => ({ label: item.eyebrow, href: `/${slug}`, group: "Páginas", terms: `${item.title} ${item.intro}` })),
+];
+
+function SearchPalette() {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const router = useRouter();
+
+  const normalizedQuery = query.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  const filteredSearchItems = normalizedQuery
+    ? searchItems.filter((item) => `${item.label} ${item.terms}`.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes(normalizedQuery))
+    : searchItems;
+
+  useEffect(() => {
+    function shortcut(event: KeyboardEvent) {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setOpen((value) => !value);
+      }
+    }
+    window.addEventListener("keydown", shortcut);
+    return () => window.removeEventListener("keydown", shortcut);
+  }, []);
+
+  function select(href: string) {
+    setOpen(false);
+    setQuery("");
+    router.push(href);
+  }
+
+  return (
+    <>
+      <Button variant="outline" size="icon" className="search-button" aria-label="Buscar no site" onClick={() => setOpen(true)}><Search /></Button>
+      <CommandDialog open={open} onOpenChange={(nextOpen) => { setOpen(nextOpen); if (!nextOpen) setQuery(""); }} title="Buscar na VRJB END’R" description="Busque por método, problema, ativo, setor ou página" className="site-search-dialog">
+        <CommandInput value={query} onValueChange={setQuery} placeholder="Ex.: corrosão, ultrassom, tubulação..." />
+        <CommandList>
+          <CommandEmpty>Nenhum conteúdo encontrado.</CommandEmpty>
+          {["Métodos", "Problemas", "Ativos", "Setores", "Páginas"].map((group) => (
+            <CommandGroup key={group} heading={group}>
+              {filteredSearchItems.filter((item) => item.group === group).map((item) => (
+                <CommandItem key={`${group}-${item.href}`} value={`${item.label} ${item.terms}`} onSelect={() => select(item.href)}>
+                  <Search /><span>{item.label}</span><small>{item.href}</small>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          ))}
+        </CommandList>
+      </CommandDialog>
+    </>
   );
 }
 
@@ -115,6 +192,7 @@ function SiteHeader() {
           ))}
         </nav>
         <div className="header-actions">
+          <SearchPalette />
           <Button asChild className="btn-primary header-cta">
             <Link href="/solicitar-diagnostico">Solicitar diagnóstico <ArrowRight /></Link>
           </Button>
@@ -184,18 +262,60 @@ function SiteFooter() {
 }
 
 function SiteShell({ children }: { children: React.ReactNode }) {
+  const [progress, setProgress] = useState(0);
+
+  useEffect(() => {
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const revealItems = Array.from(document.querySelectorAll<HTMLElement>(".section, .pathway-band, .stats-shell"));
+    if (!reduced) revealItems.forEach((item) => item.classList.add("reveal-pending"));
+    if (reduced) revealItems.forEach((item) => item.classList.add("is-visible"));
+    const observer = reduced ? null : new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          (entry.target as HTMLElement).classList.add("is-visible");
+          observer?.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.08 });
+    if (observer) revealItems.forEach((item) => observer.observe(item));
+
+    function updateProgress() {
+      const max = document.documentElement.scrollHeight - window.innerHeight;
+      setProgress(max > 0 ? Math.min(100, (window.scrollY / max) * 100) : 0);
+    }
+    updateProgress();
+    window.addEventListener("scroll", updateProgress, { passive: true });
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("scroll", updateProgress);
+    };
+  }, []);
+
   return (
     <>
       <IntroSequence />
+      <div className="scroll-progress" aria-hidden="true"><i style={{ width: `${progress}%` }} /></div>
       <a href="#conteudo" className="skip-link">Pular para o conteúdo</a>
       <SiteHeader />
       <main id="conteudo">{children}</main>
       <SiteFooter />
+      <WhatsAppButton />
       <Link className="mobile-sticky-cta" href="/solicitar-diagnostico">
         Solicitar diagnóstico <ArrowRight />
       </Link>
     </>
   );
+}
+
+// TODO: substituir pelo contato oficial antes do go-live
+const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || "+55 00 00000-0000";
+// TODO: substituir pelo contato oficial antes do go-live
+const contactEmail = process.env.NEXT_PUBLIC_CONTACT_EMAIL || "contato@exemplo.invalid";
+const whatsappDigits = whatsappNumber.replace(/\D/g, "");
+
+function WhatsAppButton({ message = "Olá, gostaria de falar sobre uma necessidade de inspeção." }: { message?: string }) {
+  const href = `https://wa.me/${whatsappDigits}?text=${encodeURIComponent(message)}`;
+  return <a className="whatsapp-button" href={href} target="_blank" rel="noreferrer" aria-label={`Abrir WhatsApp. Canal ilustrativo: ${whatsappNumber}`}><MessageCircle /><span>WhatsApp</span><small>canal a validar</small></a>;
 }
 
 function SectionHeading({
@@ -221,23 +341,6 @@ function SectionHeading({
   );
 }
 
-function SonarRadar() {
-  return (
-    <div className="sonar" aria-label="Representação conceitual de um radar de inspeção" role="img">
-      <div className="sonar-ring sonar-ring-1" />
-      <div className="sonar-ring sonar-ring-2" />
-      <div className="sonar-ring sonar-ring-3" />
-      <div className="sonar-axis sonar-axis-x" />
-      <div className="sonar-axis sonar-axis-y" />
-      <div className="sonar-sweep" />
-      <span className="sonar-target target-a" />
-      <span className="sonar-target target-b" />
-      <span className="sonar-target target-c" />
-      <div className="sonar-caption"><Radar /> Sinal / detecção</div>
-    </div>
-  );
-}
-
 function Hero() {
   return (
     <section className="hero">
@@ -249,6 +352,7 @@ function Hero() {
         sizes="100vw"
         className="hero-image"
       />
+      <span className="image-watermark hero-watermark">VRJB <b>END’R</b></span>
       <div className="hero-scrim" />
       <div className="technical-grid" aria-hidden="true" />
       <div className="hero-scanline" aria-hidden="true" />
@@ -271,11 +375,7 @@ function Hero() {
           </div>
         </div>
         <div className="hero-instrument">
-          <SonarRadar />
-          <div className="instrument-note">
-            <span>SCAN CONCEITUAL</span>
-            <strong>Dados visuais não operacionais</strong>
-          </div>
+          <RadarHUD />
         </div>
       </div>
       <div className="site-container hero-rail">
@@ -378,29 +478,11 @@ function ScanStory() {
   );
 }
 
-const faqs = [
-  {
-    q: "Preciso saber qual método END solicitar?",
-    a: "Não. Você pode começar pelo problema, pelo ativo ou pelo resultado que precisa. Material, geometria, acesso e criticidade ajudam a selecionar o método aplicável.",
-  },
-  {
-    q: "O site confirma certificações ou equipamentos da VRJB?",
-    a: "Ainda não. Essas áreas estão deliberadamente marcadas como conteúdo a validar. Nenhuma certificação, acreditação, cliente, equipamento ou número operacional foi presumido.",
-  },
-  {
-    q: "O que o “R” acrescenta ao END?",
-    a: "Representa o ciclo reconstrutivo: o diagnóstico orienta planejamento, reparo, recuperação ou substituição, seguido de validação e monitoramento.",
-  },
-  {
-    q: "O diagnóstico enviado pelo formulário já é uma contratação?",
-    a: "Não. O formulário organiza um briefing técnico inicial. Escopo, método, prazo, segurança e proposta dependem de análise e confirmação comercial.",
-  },
-];
-
 export function HomePage() {
   return (
     <SiteShell>
       <Hero />
+      <StatsBar />
       <PathwayBand />
 
       <section className="section section-problems">
@@ -463,19 +545,20 @@ export function HomePage() {
               <Link href="/equipamentos">Inventário a validar <ArrowRight /></Link>
             </div>
           </div>
-          <div className="system-map" role="img" aria-label="Mapa conceitual: ativo, inspeção, diagnóstico, intervenção e histórico">
-            <span className="system-core">END’R</span>
-            {['ATIVO','SINAL','DIAGNÓSTICO','INTERVENÇÃO','HISTÓRICO'].map((label, index) => (
-              <span key={label} className={`system-node node-${index + 1}`}>{label}</span>
-            ))}
-            <i className="orbit orbit-a" /><i className="orbit orbit-b" /><i className="orbit orbit-c" />
-          </div>
+          <LiveMonitoringPanel />
+        </div>
+      </section>
+
+      <section className="section field-gallery-section">
+        <div className="site-container">
+          <SectionHeading index="08" eyebrow="Aplicações ilustrativas" title="Tecnologia vista no contexto de campo." copy="As cenas são imagens conceituais para explicar métodos e acesso. Não representam equipe, equipamento ou case real da VRJB." />
+          <IllustrativeGallery />
         </div>
       </section>
 
       <section className="section proof-section">
         <div className="site-container">
-          <SectionHeading index="08" eyebrow="Evidência" title="O que ainda não foi validado fica visivelmente pendente." copy="O sistema já possui módulos para cases, equipamentos, certificações e qualificações — sem preencher lacunas com alegações fictícias." />
+          <SectionHeading index="09" eyebrow="Evidência" title="O que ainda não foi validado fica visivelmente pendente." copy="O sistema já possui módulos para cases, equipamentos, certificações e qualificações — sem preencher lacunas com alegações fictícias." />
           <div className="proof-grid">
             {[
               ["Cases", "Template pronto; conteúdo real pendente.", "/cases"],
@@ -493,7 +576,7 @@ export function HomePage() {
 
       <section className="section faq-section">
         <div className="site-container faq-layout">
-          <div><span className="eyebrow">09 · Perguntas frequentes</span><h2>Clareza antes do contato.</h2><p>Respostas diretas para reduzir atrito sem prometer o que ainda precisa ser avaliado.</p></div>
+          <div><span className="eyebrow">10 · Perguntas frequentes</span><h2>Clareza antes do contato.</h2><p>Respostas diretas para reduzir atrito sem prometer o que ainda precisa ser avaliado.</p></div>
           <FaqAccordion />
         </div>
       </section>
@@ -565,6 +648,7 @@ function StandardRoute({ content, path }: { content: RouteContent; path: string[
         <div className="site-container route-content-grid">
           {content.sections.map((section, index) => (
             <article key={section.title}>
+              {section.badge && <span className="example-badge route-example-badge">{section.badge}</span>}
               <span className="route-number">0{index + 1}</span>
               <h2>{section.title}</h2>
               <p>{section.copy}</p>
@@ -572,6 +656,17 @@ function StandardRoute({ content, path }: { content: RouteContent; path: string[
             </article>
           ))}
         </div>
+        {path[0] === "tecnologia" && <div className="site-container route-module"><LiveMonitoringPanel /></div>}
+        {path[0] === "sobre" && (
+          <div className="site-container route-module stacked-modules">
+            <PipelineVisual />
+            <BrandKitShowcase />
+            <StatsBar />
+          </div>
+        )}
+        {path[0] === "cases" && <div className="site-container route-module"><CasePortfolio /></div>}
+        {path[0] === "equipamentos" && <div className="site-container route-module"><IllustrativeGallery /></div>}
+        {path[0] === "end" && path.length === 1 && <div className="site-container route-module"><IllustrativeGallery /></div>}
         {content.related && (
           <div className="site-container related-links">
             <span className="eyebrow">Próximas leituras</span>
@@ -601,6 +696,7 @@ function EndrPage() {
         <div className="site-container">
           <SectionHeading index="01" eyebrow="Ciclo completo" title="Sete etapas. Uma linha de responsabilidade." copy="Cada etapa possui uma pergunta, uma evidência e uma saída. O processo real será ajustado ao escopo, à segurança e às normas aplicáveis." />
           <ProcessTimeline />
+          <PipelineVisual compact />
         </div>
       </section>
       <section className="section decision-layer">
@@ -702,7 +798,11 @@ function DiagnosticForm() {
         {summary ? (
           <>
             <pre>{summary}</pre>
-            <Button type="button" variant="outline" onClick={copySummary}>{copied ? <Check /> : <Clipboard />}{copied ? "Copiado" : "Copiar briefing"}</Button>
+            <div className="brief-actions">
+              <Button type="button" variant="outline" onClick={copySummary}>{copied ? <Check /> : <Clipboard />}{copied ? "Copiado" : "Copiar briefing"}</Button>
+              <Button asChild type="button" className="btn-primary"><a href={`https://wa.me/${whatsappDigits}?text=${encodeURIComponent(summary)}`} target="_blank" rel="noreferrer"><MessageCircle /> Enviar por WhatsApp</a></Button>
+            </div>
+            <small className="channel-warning">Canal a validar antes da publicação — número ilustrativo: {whatsappNumber}.</small>
           </>
         ) : (
           <div className="brief-empty"><ScanLine /><p>Preencha o formulário para organizar as informações em um resumo técnico pronto para compartilhar.</p></div>
@@ -744,8 +844,8 @@ function FaqPage() {
 function ContactPage() {
   return (
     <SiteShell>
-      <section className="route-hero"><div className="technical-grid" aria-hidden="true" /><div className="site-container route-hero-inner"><Breadcrumbs items={[{label:"Contato"}]} /><span className="eyebrow">Contato</span><h1>Primeiro, escolha a profundidade da conversa.</h1><p>Use o briefing técnico para demandas com contexto. Canais rápidos serão publicados quando os contatos oficiais forem confirmados.</p><span className="pending-banner">Telefone, e-mail, endereço e região de atendimento: conteúdo a validar</span></div></section>
-      <section className="section"><div className="site-container contact-grid"><article><span>01</span><h2>Falar com especialista</h2><p>Canal rápido reservado para dúvidas iniciais e triagem. Integração pendente de contato oficial.</p><span className="disabled-action">Canal a validar</span></article><article><span>02</span><h2>Solicitar diagnóstico</h2><p>Organize ativo, problema, urgência, janela de parada e documentos disponíveis.</p><Link href="/solicitar-diagnostico">Abrir briefing técnico <ArrowRight /></Link></article><article><span>03</span><h2>Solicitar proposta</h2><p>A proposta depende de escopo, local, condições de acesso e entregáveis confirmados.</p><Link href="/solicitar-diagnostico">Preparar informações <ArrowRight /></Link></article></div></section>
+      <section className="route-hero"><div className="technical-grid" aria-hidden="true" /><div className="site-container route-hero-inner"><Breadcrumbs items={[{label:"Contato"}]} /><span className="eyebrow">Contato</span><h1>Primeiro, escolha a profundidade da conversa.</h1><p>Use o briefing técnico para demandas com contexto. Os canais abaixo são placeholders configuráveis até a confirmação oficial.</p><span className="pending-banner">Telefone, e-mail, endereço e região de atendimento: conteúdo a validar</span></div></section>
+      <section className="section"><div className="site-container contact-grid"><article><span>01</span><h2>Falar com especialista</h2><p>Canal rápido reservado para dúvidas iniciais e triagem.</p><a className="contact-action" href={`https://wa.me/${whatsappDigits}`} target="_blank" rel="noreferrer"><MessageCircle /> Abrir WhatsApp</a><small>Canal a validar antes da publicação — número ilustrativo: {whatsappNumber}.</small></article><article><span>02</span><h2>Solicitar diagnóstico</h2><p>Organize ativo, problema, urgência, janela de parada e documentos disponíveis.</p><Link href="/solicitar-diagnostico">Abrir briefing técnico <ArrowRight /></Link></article><article><span>03</span><h2>E-mail comercial</h2><p>Variável preparada para receber o contato oficial sem alteração estrutural.</p><a className="contact-action" href={`mailto:${contactEmail}`}>{contactEmail}</a><small>Endereço ilustrativo e não monitorado.</small></article></div></section>
     </SiteShell>
   );
 }
@@ -768,5 +868,5 @@ export function RoutedPage({ path, content }: { path: string[]; content?: RouteC
     if (content) return <StandardRoute content={content} path={path} />;
     return <NotFoundRoute />;
   }, [content, key, path]);
-  return page;
+  return <div key={key} className="page-transition">{page}</div>;
 }

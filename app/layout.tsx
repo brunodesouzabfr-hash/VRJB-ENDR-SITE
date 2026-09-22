@@ -1,8 +1,9 @@
 import type { Metadata, Viewport } from "next";
+import { siteUrl } from "@/lib/site-config";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://vrjb-endr.romeufranco.chatgpt.site"),
+  metadataBase: new URL(siteUrl),
   title: {
     default: "VRJB END’R",
     template: "%s",
