@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { RoutedPage } from "@/components/vrjb-site";
+import { siteUrl } from "@/lib/site-config";
 import { contentForPath, faqs, methodDetails } from "@/lib/site-data";
 
 type RouteProps = { params: Promise<{ path: string[] }> };
@@ -65,12 +66,12 @@ export default async function Route({ params }: RouteProps) {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
-      { "@type": "ListItem", position: 1, name: "Início", item: "https://vrjb-endr.romeufranco.chatgpt.site/" },
+      { "@type": "ListItem", position: 1, name: "Início", item: `${siteUrl}/` },
       ...path.map((part, index) => ({
         "@type": "ListItem",
         position: index + 2,
         name: part.replaceAll("-", " "),
-        item: `https://vrjb-endr.romeufranco.chatgpt.site/${path.slice(0, index + 1).join("/")}`,
+        item: `${siteUrl}/${path.slice(0, index + 1).join("/")}`,
       })),
     ],
   };
@@ -94,7 +95,7 @@ export default async function Route({ params }: RouteProps) {
       serviceType: methodDetails[path[1]].eyebrow.replace("Método END · ", ""),
       description: methodDetails[path[1]].intro,
       areaServed: { "@type": "Country", name: "BR" },
-      provider: { "@type": "Organization", name: "VRJB END’R", url: "https://vrjb-endr.romeufranco.chatgpt.site" },
+      provider: { "@type": "Organization", name: "VRJB END’R", url: siteUrl },
     });
   }
   return (
